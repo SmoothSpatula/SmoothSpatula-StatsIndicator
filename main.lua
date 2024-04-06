@@ -1,4 +1,4 @@
--- Stats Indicator v1.0.0
+-- Stats Indicator v1.0.1
 -- SmoothSpatula
 
 log.info("Successfully loaded ".._ENV["!guid"]..".")
@@ -97,6 +97,10 @@ gm.post_code_execute(function(self, other, code, result, flags)
         -- Add the number of enemy killed the last frame to the kill count
         kill_count = kill_count + player.multikill
 
+        -- Check if the teleporter exist and get it
+        local tp = Helper.get_teleporter()
+        if not tp then return end
+
         -- Set font
         gm.draw_set_font(5)
 
@@ -126,7 +130,7 @@ gm.post_code_execute(function(self, other, code, result, flags)
                 director.player_exp,                                        -- Player exp
                 director.player_exp_required,                               -- Player exp required for current level
                 kill_count,                                                 -- Kill count
-                director.mountain),                       -- Mountain shrine count
+                tp.mountain + director.mountain),                           -- Mountain shrine count
             zoom_scale*params['scale'], 
             zoom_scale*params['scale'], 
             0, 8421504, 8421504, 8421504, 8421504, 1.0)
