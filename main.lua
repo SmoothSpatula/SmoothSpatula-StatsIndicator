@@ -1,4 +1,4 @@
--- Stats Indicator v1.0.2
+-- Stats Indicator v1.0.3
 -- SmoothSpatula
 
 log.info("Successfully loaded ".._ENV["!guid"]..".")
