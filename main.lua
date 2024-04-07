@@ -3,7 +3,7 @@
 
 log.info("Successfully loaded ".._ENV["!guid"]..".")
 Toml = require("tomlHelper")
-Helper = require("helper")
+mods.on_all_mods_loaded(function() for k, v in pairs(mods) do if type(v) == "table" and v.hfuncs then Helper = v end end end)
 
 -- ========== Parameters ==========
 
