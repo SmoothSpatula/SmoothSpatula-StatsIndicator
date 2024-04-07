@@ -1,10 +1,10 @@
 ﻿{
 	"name": "StatsIndicator",
-	"version_number": "1.0.2",
+	"version_number": "1.0.3",
 	"website_url": "https://github.com/SmoothSpatula/SmoothSpatula-StatsIndicator",
 	"description": "Display some stats on the HUD",
 	"dependencies": [
 		"ReturnOfModding-ReturnOfModding-1.0.20",
-		"Klehrik-HelperFunctions-1.0.0"
+		"Klehrik-HelperFunctions-1.0.1"
 	]
 }
