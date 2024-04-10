@@ -1,25 +1,25 @@
--- Stats Indicator v1.0.3
+-- Stats Indicator v1.0.4
 -- SmoothSpatula
 
 log.info("Successfully loaded ".._ENV["!guid"]..".")
-Toml = require("tomlHelper")
+
+-- ========== Loading ==========
+
+-- Helper mod
 mods.on_all_mods_loaded(function() for k, v in pairs(mods) do if type(v) == "table" and v.hfuncs then Helper = v end end end)
 
+-- Toml mod
+mods.on_all_mods_loaded(function() for k, v in pairs(mods) do if type(v) == "table" and v.tomlfuncs then Toml = v end end 
+    params = {
+        pos_x = 160,
+        pos_y = 150,
+        scale = 1.0,
+        stats_indicator_enabled = true
+    }
+    params = Toml.config_update(_ENV["!guid"], params) -- Load Save
+end)
+
 -- ========== Parameters ==========
-
-local default_params = {
-    pos_x = 160,
-    pos_y = 150,
-    scale = 1.0,
-    stats_indicator_enabled = true
-}
-
-local params = Toml.load_cfg(_ENV["!guid"])
-
-if not params then
-    Toml.save_cfg(_ENV["!guid"], default_params)
-    params = default_params
-end
 
 local zoom_scale = 1.0
 local ingame = false
