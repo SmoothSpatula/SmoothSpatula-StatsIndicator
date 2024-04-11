@@ -1,4 +1,4 @@
--- Stats Indicator v1.0.4
+-- Stats Indicator v1.0.5
 -- SmoothSpatula
 
 log.info("Successfully loaded ".._ENV["!guid"]..".")
@@ -29,7 +29,7 @@ local kill_count = 0
 local text_string = 
 [[      STATS
 ATTACK DAMAGE: %d
-CRIT CHANCE: %d%%
+CRIT CHANCE: %.2f%%
 ATTACK SPEED: %.2f
 REGEN: %.2f
 
