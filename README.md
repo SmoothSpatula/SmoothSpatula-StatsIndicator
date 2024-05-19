@@ -1,5 +1,5 @@
 # StatsIndicator
-Display some stats on the HUD
+Displays some stats on the HUD
 
 ---
 
