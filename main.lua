@@ -28,7 +28,7 @@ local kill_count = 0
 
 local text_string = 
 [[      STATS
-ATTACK DAMAGE: %d
+ATTACK DAMAGE: %.1f
 CRIT CHANCE: %.2f%%
 ATTACK SPEED: %.2f
 REGEN: %.2f
@@ -84,13 +84,13 @@ end)
 
 
 -- Draw some stats on the HUD
-local shrine_count = 0
 gm.post_code_execute(function(self, other, code, result, flags)
     if code.name:match("oInit_Draw_6") then
         if not params['stats_indicator_enabled'] then return end
         local player = Helper.get_client_player()
         local director = gm._mod_game_getDirector()
         if not player or not director then return end
+            
         -- Find if the player use its first jump 
         -- player.jump_count doesn't count it
         if player.jump_count == 0 and player.pVspeed ~= 0.0 then first_jump = 1
@@ -101,9 +101,7 @@ gm.post_code_execute(function(self, other, code, result, flags)
 
         -- Check if the teleporter exist and get it
         local tp = Helper.get_teleporter()
-        if tp then 
-            shrine_count = tp.mountain + director.mountain
-        else shrine_count = 0 end
+        if not tp then return end
 
         -- Set font, Align horizontal left, Align vertical top
         gm.draw_set_font(5)
@@ -133,7 +131,7 @@ gm.post_code_execute(function(self, other, code, result, flags)
                 director.player_exp,                                        -- Player exp
                 director.player_exp_required,                               -- Player exp required for current level
                 kill_count,                                                 -- Kill count
-                shrine_count),                                              -- Mountain shrine count
+                tp.mountain + director.mountain),                           -- Mountain shrine count
             zoom_scale*params['scale'], 
             zoom_scale*params['scale'], 
             0, 8421504, 8421504, 8421504, 8421504, 1.0)
@@ -148,7 +146,6 @@ end)
 -- Enable mod when run start
 gm.pre_script_hook(gm.constants.run_create, function(self, other, result, args)
     ingame = true
-    print("test")
 end)
 
 -- Disable mod when run ends
