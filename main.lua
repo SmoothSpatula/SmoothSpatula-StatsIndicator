@@ -1,4 +1,4 @@
--- Stats Indicator v1.0.6
+-- Stats Indicator v1.0.7
 -- SmoothSpatula
 
 log.info("Successfully loaded ".._ENV["!guid"]..".")
@@ -34,7 +34,8 @@ ATTACK SPEED: %.2f
 REGEN: %.2f
 
 JUMP: %d/%d
-SPEED: %.2f
+X SPEED: %.2f/%.2f
+Y SPEED: %.2f
 
 ARMOR: %d
 SHIELD: %d/%d
@@ -81,36 +82,13 @@ end)
 
 -- ========== Main ==========
 
--- temporary copy of helperfunctions because of missing feature in trials
-get_client_player = function()
-    -- Using pref_name to identify which player is this client
-    -- TODO: Find a better way of checking instead
-    local pref_name = "" 
-    local init = Helper.find_active_instance(gm.constants.oInit)
-    if init then pref_name = init.pref_name end
-
-    -- Get the player that belongs to this client
-    local players = Helper.find_active_instance_all(gm.constants.oP)
-    if #players == 1 then 
-        for _, p in ipairs(players) do
-            return p
-        end
-    end
-    for _, p in ipairs(players) do
-        if p.user_name == pref_name then
-            return p
-        end
-    end
-
-    return nil
-end
 
 -- Draw some stats on the HUD
 local shrine_count = 0
 gm.post_code_execute(function(self, other, code, result, flags)
     if code.name:match("oInit_Draw_6") then
         if not params['stats_indicator_enabled'] then return end
-        local player = get_client_player()
+        local player = Helper.get_client_player()
         local director = gm._mod_game_getDirector()
         if not player or not director then return end
         -- Find if the player use its first jump 
@@ -132,6 +110,7 @@ gm.post_code_execute(function(self, other, code, result, flags)
         gm.draw_set_halign(0)
         gm.draw_set_valign(0)
 
+        --print(player.movement_speed)
         -- Draw stats
         gm.draw_text_transformed_colour(
             gm.display_get_gui_width()-(params['pos_x']*zoom_scale), 
@@ -140,10 +119,12 @@ gm.post_code_execute(function(self, other, code, result, flags)
                 player.damage,                                              -- Attack Damage
                 player.critical_chance,                                     -- Critical Strike Chance
                 player.attack_speed,                                        -- Attack Speed
-                player.hp_regen*60,                                         -- Regen  
+                player.hp_regen*60,                                         -- Regen   
                 gm.item_count(player, 38)+1-player.jump_count-first_jump,   -- Remaining jumps
                 gm.item_count(player, 38)+1,                                -- Max jumps
-                math.sqrt(player.pHspeed^2 + player.pVspeed^2),             -- Speed
+                math.abs(player.pHspeed),                                   -- Horizontal Speed 
+                player.pHmax,                                               -- Max Horizontal Speed
+                math.abs(player.pVspeed),                                   -- Vertical Speed
                 player.armor,                                               -- Armor
                 player.shield,                                              -- Shield
                 player.maxshield,                                           -- Max Shield
