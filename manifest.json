@@ -5,7 +5,7 @@
 	"description": "Displays some stats on the HUD",
 	"dependencies": [
 		"ReturnOfModding-ReturnOfModding-1.0.20",
-		"Klehrik-HelperFunctions-1.0.4",
+		"Klehrik-HelperFunctions-1.0.5",
 		"SmoothSpatula-TomlHelper-1.0.0"
 	]
 }
