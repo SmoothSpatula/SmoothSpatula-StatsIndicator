@@ -1,6 +1,6 @@
-﻿{
+{
 	"name": "StatsIndicator",
-	"version_number": "1.0.7",
+	"version_number": "1.0.9",
 	"website_url": "https://github.com/SmoothSpatula/SmoothSpatula-StatsIndicator",
 	"description": "Displays some stats on the HUD",
 	"dependencies": [
