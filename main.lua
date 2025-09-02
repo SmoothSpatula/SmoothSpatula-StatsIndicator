@@ -1,71 +1,65 @@
--- Stats Indicator v1.0.9
+-- Stats Indicator v1.0.11
 -- SmoothSpatula
 
-log.info("Successfully loaded ".._ENV["!guid"]..".")
-
 -- ========== Loading ==========
+mods["RoRRModdingToolkit-RoRR_Modding_Toolkit"].auto(true)
+mods["SmoothSpatula-TomlHelper"].auto()
 
--- Helper mod
-mods.on_all_mods_loaded(function() for k, v in pairs(mods) do if type(v) == "table" and v.hfuncs then Helper = v end end end)
-
--- Toml mod
-mods.on_all_mods_loaded(function() for k, v in pairs(mods) do if type(v) == "table" and v.tomlfuncs then Toml = v end end 
-    params = {
-        pos_x = 160,
-        pos_y = 150,
-        scale = 1.0,
-        stats_indicator_enabled = true,
-        display_damage = true,
-        display_crit = true,
-        display_attack_speed = true,
-        display_regen = true,
-        display_jump = true,
-        display_xspeed = true,
-        display_yspeed = true,
-        display_armor = true,
-        display_shield = true,
-        display_barrier = true,
-        display_exp = true,
-        display_kill = true,
-        display_shrine = true,
-    }
-    params = Toml.config_update(_ENV["!guid"], params) -- Load Save
-    settings_tbl_imgui = {
-        params['display_damage'],
-        params['display_crit'],
-        params['display_attack_speed'],
-        params['display_regen'],
-        params['display_jump'],
-        params['display_xspeed'],
-        params['display_yspeed'],
-        params['display_armor'],
-        params['display_shield'],
-        params['display_barrier'],
-        params['display_exp'],
-        params['display_kill'],
-        params['display_shrine'],
-    }
-    settings_tbl_hud = {
-        params['display_damage'],
-        params['display_crit'],
-        params['display_attack_speed'],
-        params['display_regen'],
-        params['display_jump'],
-        params['display_jump'],
-        params['display_xspeed'],
-        params['display_xspeed'],
-        params['display_yspeed'],
-        params['display_armor'],
-        params['display_shield'],
-        params['display_shield'],
-        params['display_barrier'],
-        params['display_barrier'],
-        params['display_exp'],
-        params['display_exp'],
-        params['display_kill'],
-        params['display_shrine'],
-    }
-end)
+params = {
+    pos_x = 160,
+    pos_y = 150,
+    scale = 1.0,
+    stats_indicator_enabled = true,
+    display_damage = true,
+    display_crit = true,
+    display_attack_speed = true,
+    display_regen = true,
+    display_jump = true,
+    display_xspeed = true,
+    display_yspeed = true,
+    display_armor = true,
+    display_shield = true,
+    display_barrier = true,
+    display_exp = true,
+    display_kill = true,
+    display_shrine = true,
+}
+params = Toml.config_update(_ENV["!guid"], params) -- Load Save
+settings_tbl_imgui = {
+    params['display_damage'],
+    params['display_crit'],
+    params['display_attack_speed'],
+    params['display_regen'],
+    params['display_jump'],
+    params['display_xspeed'],
+    params['display_yspeed'],
+    params['display_armor'],
+    params['display_shield'],
+    params['display_barrier'],
+    params['display_exp'],
+    params['display_kill'],
+    params['display_shrine'],
+}
+settings_tbl_hud = {
+    params['display_damage'],
+    params['display_crit'],
+    params['display_attack_speed'],
+    params['display_regen'],
+    params['display_jump'],
+    params['display_jump'],
+    params['display_xspeed'],
+    params['display_xspeed'],
+    params['display_yspeed'],
+    params['display_armor'],
+    params['display_shield'],
+    params['display_shield'],
+    params['display_barrier'],
+    params['display_barrier'],
+    params['display_exp'],
+    params['display_exp'],
+    params['display_kill'],
+    params['display_shrine'],
+}
 
 -- ========== Parameters ==========
 
@@ -73,6 +67,9 @@ local zoom_scale = 1.0
 local ingame = false
 local first_jump = 0
 local kill_count = 0
+
+local player = nil
+local director = nil
 
 local val_tbl = {}
 local lookup_tbl = {}
@@ -87,9 +84,9 @@ local format_tbl = {
     "JUMP: %d/%d",
     "X SPEED: %.2f/%.2f",
     "Y SPEED: %.2f",
-    "ARMOR: %d",
-    "SHIELD: %d/%d",
-    "BARRIER: %.1f/%d",
+    "ARMOR: %.1f",
+    "SHIELD: %.1f/%.1f",
+    "BARRIER: %.1f/%.1f",
     "EXP: %.1f/%.1f",
     "KILL COUNT: %d",
     "MOUNTAIN SHRINE: %d"
@@ -283,7 +280,8 @@ function init()
     end
 end
 
-function get_vals(player, director)        
+function get_vals(player, director)     
+
     -- Find if the player use its first jump 
     -- player.jump_count doesn't count it
     if player.jump_count == 0 and player.pVspeed ~= 0.0 then first_jump = 1
@@ -293,9 +291,9 @@ function get_vals(player, director)
     kill_count = kill_count + player.multikill
 
     -- Check if the teleporter exist and get it
-    local tp = Helper.get_teleporter()
+    local tp = Instance.find(Instance.teleporters)
     local tpMountain = 0
-    if tp then tpMountain = tp.mountain end
+    if tp:exists() then tpMountain = tp.mountain end
 
     return {
         player.damage,                                              -- Attack Damage
@@ -320,35 +318,36 @@ function get_vals(player, director)
 end
 
 -- Draw some stats on the HUD
-gm.post_code_execute(function(self, other, code, result, flags)
-    if code.name:match("oInit_Draw_6") then
-        if not params['stats_indicator_enabled'] then return end
-
-        local player = Helper.get_client_player()
-        local director = gm._mod_game_getDirector()
-        if not player or not director then return end
-
-        -- create a result_tbl from the lookup_tbl and val_tbl
-        val_tbl = get_vals(player, director)
-        for i=1, #lookup_tbl do
-        result_tbl[i] = val_tbl[lookup_tbl[i]]
-        end
-        
-        -- Set font, Align horizontal left, Align vertical top
-        gm.draw_set_font(5)
-        gm.draw_set_halign(0)
-        gm.draw_set_valign(0)
-
-        --print(player.movement_speed)
-        -- Draw stats
-        gm.draw_text_transformed_colour(
-            gm.display_get_gui_width()-(params['pos_x']*zoom_scale), 
-            params['pos_y']*zoom_scale, 
-            string.format(format_str, table.unpack(result_tbl)),                           -- Mountain shrine count
-            zoom_scale*params['scale'], 
-            zoom_scale*params['scale'], 
-            0, 8421504, 8421504, 8421504, 8421504, 1.0)
+gm.post_code_execute("gml_Object_oInit_Draw_64", function(self, other)
+    if not params['stats_indicator_enabled'] or not ingame then return end
+    if not player or director == -4 then
+        player = Player.get_client()
+        director = gm._mod_game_getDirector()
+        return 
     end
+
+    -- create a result_tbl from the lookup_tbl and val_tbl
+
+    if not player.value then return end
+
+    val_tbl = get_vals(player.value, director)
+    for i=1, #lookup_tbl do
+    result_tbl[i] = val_tbl[lookup_tbl[i]]
+    end
+    
+    -- Set font, Align horizontal left, Align vertical top
+    gm.draw_set_font(5)
+    gm.draw_set_halign(0)
+    gm.draw_set_valign(0)
+
+    -- Draw stats
+    gm.draw_text_transformed_colour(
+        gm.display_get_gui_width()-(params['pos_x']*zoom_scale), 
+        params['pos_y']*zoom_scale, 
+        string.format(format_str, table.unpack(result_tbl)),                           -- Mountain shrine count
+        zoom_scale*params['scale'], 
+        zoom_scale*params['scale'], 
+        0, 8421504, 8421504, 8421504, 8421504, 1.0)
 end)
 
 -- Get the current HUD scale for live resizing
@@ -367,15 +366,5 @@ gm.pre_script_hook(gm.constants.run_destroy, function(self, other, result, args)
     kill_count = 0
 end)
 
-local hooks = {}
-hooks["gml_Object_oStartMenu_Step_2"] = function() -- mod init
-    hooks["gml_Object_oStartMenu_Step_2"] = nil
-
-    init()
-end
-
-gm.pre_code_execute(function(self, other, code, result, flags)
-    if hooks[code.name] then
-        hooks[code.name](self)
-    end
-end)
+Initialize(init)
+log.info("Successfully loaded ".._ENV["!guid"]..".")
