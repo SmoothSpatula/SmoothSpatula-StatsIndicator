@@ -1,4 +1,4 @@
--- Stats Indicator v1.0.11
+-- Stats Indicator v1.0.12
 -- SmoothSpatula
 
 -- ========== Loading ==========
@@ -320,7 +320,7 @@ end
 -- Draw some stats on the HUD
 gm.post_code_execute("gml_Object_oInit_Draw_64", function(self, other)
     if not params['stats_indicator_enabled'] or not ingame then return end
-    if not player or director == -4 then
+    if not player or director == -4 or not player.value then
         player = Player.get_client()
         director = gm._mod_game_getDirector()
         return 
@@ -358,6 +358,7 @@ end)
 -- Enable mod when run start
 gm.pre_script_hook(gm.constants.run_create, function(self, other, result, args)
     ingame = true
+    player = nil
 end)
 
 -- Disable mod when run ends
