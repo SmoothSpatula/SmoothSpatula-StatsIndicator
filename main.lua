@@ -1,4 +1,4 @@
--- Stats Indicator v1.0.12
+-- Stats Indicator v1.0.13
 -- SmoothSpatula
 
 -- ========== Loading ==========
@@ -70,6 +70,7 @@ local kill_count = 0
 
 local player = nil
 local director = nil
+local oInit = nil
 
 local val_tbl = {}
 local lookup_tbl = {}
@@ -280,15 +281,17 @@ function init()
     end
 end
 
-function get_vals(player, director)     
+function get_vals(player, director)
 
     -- Find if the player use its first jump 
     -- player.jump_count doesn't count it
     if player.jump_count == 0 and player.pVspeed ~= 0.0 then first_jump = 1
     elseif first_jump == 1 and player.pVspeed == 0.0 then first_jump = 0 end
 
-    -- Add the number of enemy killed the last frame to the kill count
-    kill_count = kill_count + player.multikill
+    -- Get the kill_count from the game_report
+    if oInit and oInit.player then
+        kill_count = oInit.player[1].game_report.kills
+    end
 
     -- Check if the teleporter exist and get it
     local tp = Instance.find(Instance.teleporters)
@@ -319,10 +322,12 @@ end
 
 -- Draw some stats on the HUD
 gm.post_code_execute("gml_Object_oInit_Draw_64", function(self, other)
-    if not params['stats_indicator_enabled'] or not ingame then return end
-    if not player or director == -4 or not player.value then
+    zoom_scale = gm.prefs_get_hud_scale()
+    if not gm.variable_global_get("__run_exists") or self.chat_talking or not params['stats_indicator_enabled'] then return end
+    if not player or not player.value or director == -4 or director == nil then
         player = Player.get_client()
         director = gm._mod_game_getDirector()
+        oInit = gm.instance_find(gm.constants.oInit, 0)
         return 
     end
 
@@ -351,21 +356,24 @@ gm.post_code_execute("gml_Object_oInit_Draw_64", function(self, other)
 end)
 
 -- Get the current HUD scale for live resizing
-gm.pre_script_hook(gm.constants.__input_system_tick, function(self, other, result, args)
-    zoom_scale = gm.prefs_get_hud_scale()
-end)
+-- gm.pre_script_hook(gm.constants.__input_system_tick, function(self, other, result, args)
+--     zoom_scale = 
+-- end)
 
 -- Enable mod when run start
 gm.pre_script_hook(gm.constants.run_create, function(self, other, result, args)
-    ingame = true
     player = nil
+    kill_count = 0
 end)
 
--- Disable mod when run ends
-gm.pre_script_hook(gm.constants.run_destroy, function(self, other, result, args)
-    ingame = false
-    kill_count = 0
+gm.post_script_hook(gm.constants.actor_kill, function(self, other, result, args)
+    print("actor kill")
+    print(gm.object_get_name(self))
+    print(gm.object_get_name(other))
 end)
 
 Initialize(init)
 log.info("Successfully loaded ".._ENV["!guid"]..".")
+
+if reload then init() end
+reload = true
