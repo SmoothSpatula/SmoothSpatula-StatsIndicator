@@ -1,8 +1,4 @@
-### v1.0.13
-* Stopped using multikill to instead use game_report.kills
-* Removed some hooks
-
-### v1.0.10 and v1.0.12
+### v1.0.10 and v1.0.13
 * Various fixes
 
 ### v1.0.9

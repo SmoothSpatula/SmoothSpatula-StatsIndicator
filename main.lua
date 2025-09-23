@@ -297,26 +297,25 @@ function get_vals(player, director)
     local tp = Instance.find(Instance.teleporters)
     local tpMountain = 0
     if tp:exists() then tpMountain = tp.mountain end
-
     return {
-        player.damage,                                              -- Attack Damage
-        player.critical_chance,                                     -- Critical Strike Chance
-        player.attack_speed,                                        -- Attack Speed
-        player.hp_regen*60,                                         -- Regen   
-        gm.item_count(player, 38)+1-player.jump_count-first_jump,   -- Remaining jumps
-        gm.item_count(player, 38)+1,                                -- Max jumps
-        math.abs(player.pHspeed),                                   -- Horizontal Speed 
-        player.pHmax,                                               -- Max Horizontal Speed
-        math.abs(player.pVspeed),                                   -- Vertical Speed
-        player.armor,                                               -- Armor
-        player.shield,                                              -- Shield
-        player.maxshield,                                           -- Max Shield
-        player.barrier,                                             -- Barrier
-        player.maxbarrier,                                          -- Max Barrier
-        director.player_exp,                                        -- Player exp
-        director.player_exp_required,                               -- Player exp required for current level
-        kill_count,                                                 -- Kill count
-        tpMountain + director.mountain                              -- Mountain shrine count
+        player.damage or 0,                                              -- Attack Damage
+        player.critical_chance or 0,                                     -- Critical Strike Chance
+        player.attack_speed or 0,                                        -- Attack Speed
+        (player.hp_regen or 0)*60,                                       -- Regen   
+        gm.item_count(player, 38)+1-(player.jump_count or 0)-first_jump, -- Remaining jumps
+        gm.item_count(player, 38)+1,                                     -- Max jumps
+        math.abs(player.pHspeed or 0),                                   -- Horizontal Speed 
+        player.pHmax or 0,                                               -- Max Horizontal Speed
+        math.abs(player.pVspeed or 0),                                   -- Vertical Speed
+        player.armor or 0,                                               -- Armor
+        player.shield or 0,                                              -- Shield
+        player.maxshield or 0,                                           -- Max Shield
+        player.barrier or 0,                                             -- Barrier
+        player.maxbarrier or 0,                                          -- Max Barrier
+        director.player_exp or 0,                                        -- Player exp
+        director.player_exp_required or 0,                               -- Player exp required for current level
+        kill_count or 0,                                                 -- Kill count
+        tpMountain + (director.mountain or 0)                             -- Mountain shrine count
     }
 end
 
@@ -324,7 +323,7 @@ end
 gm.post_code_execute("gml_Object_oInit_Draw_64", function(self, other)
     zoom_scale = gm.prefs_get_hud_scale()
     if not gm.variable_global_get("__run_exists") or self.chat_talking or not params['stats_indicator_enabled'] then return end
-    if not player or not player.value or director == -4 or director == nil then
+    if not player or player.value == nil or player.value == -4 or director == -4 or director == nil then -- idk how to chekc this animore pls help
         player = Player.get_client()
         director = gm._mod_game_getDirector()
         oInit = gm.instance_find(gm.constants.oInit, 0)
@@ -333,7 +332,7 @@ gm.post_code_execute("gml_Object_oInit_Draw_64", function(self, other)
 
     -- create a result_tbl from the lookup_tbl and val_tbl
 
-    if not player.value then return end
+    if player.value == nil or player.value == -4 then return end
 
     val_tbl = get_vals(player.value, director)
     for i=1, #lookup_tbl do
