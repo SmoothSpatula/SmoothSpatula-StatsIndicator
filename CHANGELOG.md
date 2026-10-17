@@ -1,3 +1,8 @@
+### v2.0.0
+* Migrated to ReturnsAPI
+* Bunch of fixes
+* added ModOptions
+
 ### v1.0.10 and v1.0.15
 * Various fixes
 

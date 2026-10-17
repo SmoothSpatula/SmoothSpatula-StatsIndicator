@@ -1,11 +1,17 @@
--- Stats Indicator v1.0.15
+-- Stats Indicator
 -- SmoothSpatula
 
 -- ========== Loading ==========
-mods["RoRRModdingToolkit-RoRR_Modding_Toolkit"].auto(true)
+mods["ReturnsAPI-ReturnsAPI"].auto {
+    namespace = "statsindicator",
+    mp = true
+}
+
 mods["SmoothSpatula-TomlHelper"].auto()
 
-params = {
+-- ========== Configuration ==========
+
+params = Toml.config_update(_ENV["!guid"], {
     pos_x = 160,
     pos_y = 150,
     scale = 1.0,
@@ -23,361 +29,250 @@ params = {
     display_exp = true,
     display_kill = true,
     display_shrine = true,
-}
-params = Toml.config_update(_ENV["!guid"], params) -- Load Save
-settings_tbl_imgui = {
-    params['display_damage'],
-    params['display_crit'],
-    params['display_attack_speed'],
-    params['display_regen'],
-    params['display_jump'],
-    params['display_xspeed'],
-    params['display_yspeed'],
-    params['display_armor'],
-    params['display_shield'],
-    params['display_barrier'],
-    params['display_exp'],
-    params['display_kill'],
-    params['display_shrine'],
-}
-settings_tbl_hud = {
-    params['display_damage'],
-    params['display_crit'],
-    params['display_attack_speed'],
-    params['display_regen'],
-    params['display_jump'],
-    params['display_jump'],
-    params['display_xspeed'],
-    params['display_xspeed'],
-    params['display_yspeed'],
-    params['display_armor'],
-    params['display_shield'],
-    params['display_shield'],
-    params['display_barrier'],
-    params['display_barrier'],
-    params['display_exp'],
-    params['display_exp'],
-    params['display_kill'],
-    params['display_shrine'],
+})
+
+local display_settings = {
+    { "Damage",          "display_damage",        "ATTACK DAMAGE: %.1f",    {1} },
+    { "Crit Chance",     "display_crit",          "CRIT CHANCE: %.2f%%",    {2} },
+    { "Attack Speed",    "display_attack_speed",  "ATTACK SPEED: %.2f",     {3} },
+    { "Regen",           "display_regen",         "REGEN: %.2f",            {4} },
+    { "Jump",            "display_jump",          "JUMP: %d/%d",            {5, 6} },
+    { "X Speed",         "display_xspeed",        "X SPEED: %.2f/%.2f",     {7, 8} },
+    { "Y Speed",         "display_yspeed",        "Y SPEED: %.2f",          {9} },
+    { "Armor",           "display_armor",         "ARMOR: %.1f",            {10} },
+    { "Shield",          "display_shield",        "SHIELD: %.1f/%.1f",      {11, 12} },
+    { "Barrier",         "display_barrier",       "BARRIER: %.1f/%.1f",     {13, 14} },
+    { "XP",              "display_exp",           "EXP: %.1f/%.1f",         {15, 16} },
+    { "Kill Count",      "display_kill",          "KILL COUNT: %d",         {17} },
+    { "Mountain Shrine", "display_shrine",        "MOUNTAIN SHRINE: %d",    {18} },
 }
 
 -- ========== Parameters ==========
 
 local zoom_scale = 1.0
-local ingame = false
 local first_jump = 0
 local kill_count = 0
 
-local player = nil
-local director = nil
-local oInit = nil
+local player    = nil
+local director  = nil
+local oInit     = nil
+local tp        = nil
 
-local val_tbl = {}
 local lookup_tbl = {}
-local result_tbl = {}
-
 local format_str = "      STATS"
-local format_tbl = {
-    "ATTACK DAMAGE: %.1f",
-    "CRIT CHANCE: %.2f%%",
-    "ATTACK SPEED: %.2f",
-    "REGEN: %.2f",
-    "JUMP: %d/%d",
-    "X SPEED: %.2f/%.2f",
-    "Y SPEED: %.2f",
-    "ARMOR: %.1f",
-    "SHIELD: %.1f/%.1f",
-    "BARRIER: %.1f/%.1f",
-    "EXP: %.1f/%.1f",
-    "KILL COUNT: %d",
-    "MOUNTAIN SHRINE: %d"
-}
 
 -- ========== ImGui ==========
 
 gui.add_to_menu_bar(function()
-    local new_value, clicked = ImGui.Checkbox("Enable Stats Indicator", params['stats_indicator_enabled'])
-    if clicked then
-        params['stats_indicator_enabled'] = new_value
+    local value, changed = ImGui.Checkbox(
+        "Enable Stats Indicator",
+        params.stats_indicator_enabled
+    )
+
+    if changed then
+        params.stats_indicator_enabled = value
         Toml.save_cfg(_ENV["!guid"], params)
     end
 end)
 
 gui.add_to_menu_bar(function()
-    local new_value, clicked = ImGui.DragInt("X position from the right part of the screen", params['pos_x'], 1, 0, gm.display_get_gui_width()//zoom_scale)
-    if clicked then
-        params['pos_x'] = new_value
+    local value, changed = ImGui.DragInt(
+        "X position from the right part of the screen",
+        params.pos_x, 1, 0, gm.display_get_gui_width() // zoom_scale
+    )
+
+    if changed then
+        params.pos_x = value
         Toml.save_cfg(_ENV["!guid"], params)
     end
 end)
 
 gui.add_to_menu_bar(function()
-    local new_value, clicked = ImGui.DragInt("Y position from the top part of the screen", params['pos_y'], 1, 0, gm.display_get_gui_height()//zoom_scale)
-    if clicked then
-        params['pos_y'] = new_value
+    local value, changed = ImGui.DragInt(
+        "Y position from the top part of the screen",
+        params.pos_y, 1, 0, gm.display_get_gui_height() // zoom_scale
+    )
+
+    if changed then
+        params.pos_y = value
         Toml.save_cfg(_ENV["!guid"], params)
     end
 end)
 
 gui.add_to_menu_bar(function()
-    local new_value, isChanged = ImGui.InputFloat("Scale of the text", params['scale'], 0.05, 0.2, "%.2f", 0)
-    if isChanged and new_value >= -0.01 then -- due to floating point precision error, checking against 0 does not work
-        params['scale'] = math.abs(new_value) -- same as above, so it display -0.0
+    local value, changed = ImGui.InputFloat(
+        "Scale of the text", params.scale, 0.05, 0.2, "%.2f", 0
+    )
+
+    if changed and value >= -0.01 then
+        params.scale = math.abs(value)
         Toml.save_cfg(_ENV["!guid"], params)
     end
 end)
 
 gui.add_to_menu_bar(function()
-    local hasChanged = false
-
     ImGui.Text("\tDisplay Stats")
 
-    local new_value, pressed  = ImGui.Checkbox("Damage", params['display_damage'])
-    if pressed then
-        hasChanged = true
-        params['display_damage'] = new_value
-        settings_tbl_imgui[1] = new_value
-        settings_tbl_hud[1] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
+    local changed = false
+
+    for _, stat in ipairs(display_settings) do
+        local value, pressed = ImGui.Checkbox(
+            stat[1], params[stat[2]]
+        )
+
+        if pressed then
+            params[stat[2]] = value
+            changed = true
+        end
     end
 
-    local new_value, pressed  = ImGui.Checkbox("Crit Chance", params['display_crit'])
-    if pressed then
-        hasChanged = true
-        params['display_crit'] = new_value
-        settings_tbl_imgui[2] = new_value
-        settings_tbl_hud[2] = new_value
+    if changed then
         Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("Attack Speed", params['display_attack_speed'])
-    if pressed then
-        hasChanged = true
-        params['display_attack_speed'] = new_value
-        settings_tbl_imgui[3] = new_value
-        settings_tbl_hud[3] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("Regen", params['display_regen'])
-    if pressed then
-        hasChanged = true
-        params['display_regen'] = new_value
-        settings_tbl_imgui[4] = new_value
-        settings_tbl_hud[4] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("Jump", params['display_jump'])
-    if pressed then
-        hasChanged = true
-        params['display_jump'] = new_value
-        settings_tbl_imgui[5] = new_value
-        settings_tbl_hud[5] = new_value
-        settings_tbl_hud[6] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("X Speed", params['display_xspeed'])
-    if pressed then
-        hasChanged = true
-        params['display_xspeed'] = new_value
-        settings_tbl_imgui[6] = new_value
-        settings_tbl_hud[7] = new_value
-        settings_tbl_hud[8] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("Y Speed", params['display_yspeed'])
-    if pressed then
-        hasChanged = true
-        params['display_yspeed'] = new_value
-        settings_tbl_imgui[7] = new_value
-        settings_tbl_hud[9] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("Armor", params['display_armor'])
-    if pressed then
-        hasChanged = true
-        params['display_armor'] = new_value
-        settings_tbl_imgui[8] = new_value
-        settings_tbl_hud[10] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("Shield", params['display_shield'])
-    if pressed then
-        hasChanged = true
-        params['display_shield'] = new_value
-        settings_tbl_imgui[9] = new_value
-        settings_tbl_hud[11] = new_value
-        settings_tbl_hud[12] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("Barrier", params['display_barrier'])
-    if pressed then
-        hasChanged = true
-        params['display_barrier'] = new_value
-        settings_tbl_imgui[10] = new_value
-        settings_tbl_hud[13] = new_value
-        settings_tbl_hud[14] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("XP", params['display_exp'])
-    if pressed then
-        hasChanged = true
-        params['display_exp'] = new_value
-        settings_tbl_imgui[11] = new_value
-        settings_tbl_hud[15] = new_value
-        settings_tbl_hud[16] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("Kill Count", params['display_kill'])
-    if pressed then
-        hasChanged = true
-        params['display_kill'] = new_value
-        settings_tbl_imgui[12] = new_value
-        settings_tbl_hud[17] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    local new_value, pressed  = ImGui.Checkbox("Mountain Shrine", params['display_shrine'])
-    if pressed then
-        hasChanged = true
-        params['display_shrine'] = new_value
-        settings_tbl_imgui[13] = new_value
-        settings_tbl_hud[18] = new_value
-        Toml.save_cfg(_ENV["!guid"], params)
-    end
-
-    if hasChanged then 
-        init() 
-        hasChanged = false
+        init()
     end
 end)
+
+-- ======== ModOptions ======
+
+local modOptions = ModOptions.new()
+
+local function add_checkbox(id, key)
+    local checkbox = modOptions:add_checkbox(id)
+
+    checkbox:add_getter(function()
+        return params[key]
+    end)
+
+    checkbox:add_setter(function(value)
+        params[key] = value
+        Toml.save_cfg(_ENV["!guid"], params)
+        init()
+    end)
+end
+
+add_checkbox("stats_indicator_enabled", "stats_indicator_enabled")
+
+for _, setting in ipairs(display_settings) do
+    add_checkbox("stats."..setting[2], setting[2], init)
+end
 
 -- ========== Main ==========
 
 function init()
     format_str = "      STATS"
-    -- create format_str  based on the settings_tbl_imgui
-    for k, v in ipairs(settings_tbl_imgui) do
-        if v then
-        format_str=format_str.."\n"..format_tbl[k]
-        end
-    end
+    lookup_tbl = {}
 
-    -- create lookup_tbl based on the settings_tbl_hud
-    local i = 1
-    for k, v in ipairs(settings_tbl_hud) do
-        if v then
-        lookup_tbl[i] = k
-        i = i+1
+    for _, stat in ipairs(display_settings) do
+        if params[stat[2]] then
+            format_str = format_str .. "\n" .. stat[3]
+
+            for _, index in ipairs(stat[4]) do
+                lookup_tbl[#lookup_tbl + 1] = index
+            end
         end
     end
 end
 
-function get_vals(player, director)
+local function get_vals(player, director)
+    -- Account for the first jump, which jump_count does not track
+    if player.jump_count == 0 and player.pVspeed ~= 0.0 then
+        first_jump = 1
+    elseif first_jump == 1 and player.pVspeed == 0.0 then
+        first_jump = 0
+    end
 
-    -- Find if the player use its first jump 
-    -- player.jump_count doesn't count it
-    if player.jump_count == 0 and player.pVspeed ~= 0.0 then first_jump = 1
-    elseif first_jump == 1 and player.pVspeed == 0.0 then first_jump = 0 end
 
-    -- Get the kill_count from the game_report
-    if oInit and oInit.player then
+    if oInit and oInit.player and oInit.player[1] and oInit.player[1].game_report then
         kill_count = oInit.player[1].game_report.kills
     end
 
-    -- Check if the teleporter exist and get it
-    local tp = Instance.find(Instance.teleporters)
-    local tpMountain = 0
-    if tp:exists() then tpMountain = tp.mountain end
-    player.damage = nil
+    if Instance.exists(tp) then
+        tpMountain = tp.mountain or 0
+    else
+        tpMountain = 0
+    end
+
     return {
-        player.damage,                                              -- Attack Damage
-        player.critical_chance,                                     -- Critical Strike Chance
-        player.attack_speed,                                        -- Attack Speed
-        player.hp_regen*60,                                       -- Regen   
-        gm.item_count(player, 38)+1-player.jump_count-first_jump,   -- Remaining jumps
-        gm.item_count(player, 38)+1,                                -- Max jumps
-        math.abs(player.pHspeed),                                   -- Horizontal Speed 
-        player.pHmax,                                               -- Max Horizontal Speed
-        math.abs(player.pVspeed),                                   -- Vertical Speed
-        player.armor,                                               -- Armor
-        player.shield,                                              -- Shield
-        player.maxshield,                                           -- Max Shield
-        player.barrier,                                             -- Barrier
-        player.maxbarrier,                                          -- Max Barrier
-        director.player_exp,                                        -- Player exp
-        director.player_exp_required,                               -- Player exp required for current level
-        kill_count,                                                 -- Kill count
-        tpMountain + director.mountain                              -- Mountain shrine count
+        player.damage,                                                  -- 1: Attack damage
+        player.critical_chance,                                         -- 2: Crit chance
+        player.attack_speed,                                            -- 3: Attack speed
+        (player.hp_regen) * 60,                                         -- 4: Regen
+        gm.item_count(player, 38) + 1 - player.jump_count - first_jump, -- 5: Remaining jumps
+        gm.item_count(player, 38) + 1,                                  -- 6: Maximum jumps
+        math.abs(player.pHspeed),                                       -- 7: Horizontal speed
+        player.pHmax,                                                   -- 8: Maximum horizontal speed
+        math.abs(player.pVspeed),                                       -- 9: Vertical speed
+        player.armor,                                                   -- 10: Armor
+        player.shield,                                                  -- 11: Shield
+        player.maxshield,                                               -- 12: Maximum shield
+        player.barrier,                                                 -- 13: Barrier
+        player.maxbarrier,                                              -- 14: Maximum barrier
+        director.player_exp,                                            -- 15: Current XP
+        director.player_exp_required,                                   -- 16: XP required
+        kill_count,                                                     -- 17: Kill count
+        tpMountain + director.mountain                                  -- 18: Mountain shrines
     }
 end
 
--- Draw some stats on the HUD
-gm.post_code_execute("gml_Object_oInit_Draw_64", function(self, other)
+-- ========== HUD ==========
+
+Callback.add(Callback.ON_HUD_DRAW, function()
+    if not params.stats_indicator_enabled then return end
+
     zoom_scale = gm.prefs_get_hud_scale()
-    if not gm.variable_global_get("__run_exists") or self.chat_talking or not params['stats_indicator_enabled'] then return end
-    if not player or player.value == nil or player.value == -4 or director == -4 or director == nil then -- idk how to chekc this animore pls help
-        player = Player.get_client()
+
+    -- Refresh references when necessary.
+    if not player or player.value == nil or player.value == -4
+        or director == nil or director == -4 then
+        player = Player.get_local()
         director = gm._mod_game_getDirector()
         oInit = gm.instance_find(gm.constants.oInit, 0)
-        return 
+        return
     end
 
-    -- create a result_tbl from the lookup_tbl and val_tbl
+    if not director then return end
 
-    if player.value == nil or player.value == -4 then return end
+    local values = get_vals(player.value, director)
+    local result_tbl = {}
 
-    val_tbl = get_vals(player.value, director)
-    for i=1, #lookup_tbl do
-        if type(val_tbl[lookup_tbl[i]]) == "number" then
-            result_tbl[i] = val_tbl[lookup_tbl[i]]
-        else
-            result_tbl[i] = 0
-        end
+    for _, index in ipairs(lookup_tbl) do
+        local value = values[index]
+        result_tbl[#result_tbl + 1] =
+            type(value) == "number" and value or 0
     end
-    
-    -- Set font, Align horizontal left, Align vertical top
+
     gm.draw_set_font(5)
     gm.draw_set_halign(0)
     gm.draw_set_valign(0)
 
-    -- Draw stats
     gm.draw_text_transformed_colour(
-        gm.display_get_gui_width()-(params['pos_x']*zoom_scale), 
-        params['pos_y']*zoom_scale, 
-        string.format(format_str, table.unpack(result_tbl)),                           -- Mountain shrine count
-        zoom_scale*params['scale'], 
-        zoom_scale*params['scale'], 
-        0, 8421504, 8421504, 8421504, 8421504, 1.0)
+        gm.display_get_gui_width() - params.pos_x * zoom_scale,
+        params.pos_y * zoom_scale,
+        string.format(format_str, table.unpack(result_tbl)),
+        zoom_scale * params.scale,
+        zoom_scale * params.scale,
+        0,
+        8421504, 8421504, 8421504, 8421504,
+        1.0
+    )
 end)
 
--- Get the current HUD scale for live resizing
--- gm.pre_script_hook(gm.constants.__input_system_tick, function(self, other, result, args)
---     zoom_scale = 
--- end)
+-- ========== Lifecycle ==========
 
--- Enable mod when run start
-gm.pre_script_hook(gm.constants.run_create, function(self, other, result, args)
-    player = nil
+Callback.add(Callback.ON_PLAYER_INIT, function(self)
+    if not self == Player.get_local() then return end
+    player = self.value
+    director = nil
+    oInit = nil
     kill_count = 0
+    first_jump = 0
 end)
 
-gm.post_script_hook(gm.constants.actor_kill, function(self, other, result, args)
-    print("actor kill")
-    print(gm.object_get_name(self))
-    print(gm.object_get_name(other))
+Callback.add(Callback.ON_STAGE_START, function()
+    tp = Instance.find(gm.constants.oTeleporter, 1)
+    if not Instance.exists(tp) then
+        tp = Instance.find(gm.constants.oTeleporterEpic, 1)
+    end
 end)
 
-Initialize(init)
-log.info("Successfully loaded ".._ENV["!guid"]..".")
-
-if reload then init() end
-reload = true
+Initialize.add_hotloadable(init)

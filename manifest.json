@@ -1,11 +1,11 @@
 {
 	"name": "StatsIndicator",
-	"version_number": "1.0.15",
+	"version_number": "2.0.0",
 	"website_url": "https://github.com/SmoothSpatula/SmoothSpatula-StatsIndicator",
 	"description": "Displays some stats on the HUD",
 	"dependencies": [
-		"ReturnOfModding-ReturnOfModding-1.1.0",
-		"RoRRModdingToolkit-RoRR_Modding_Toolkit-1.2.24",
+		"ReturnOfModding-ReturnOfModding-1.1.16",
+		"ReturnsAPI-ReturnsAPI-0.1.44",
 		"SmoothSpatula-TomlHelper-1.1.1"
 	]
 }

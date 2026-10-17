@@ -1,6 +1,8 @@
 # StatsIndicator
 Displays some stats on the HUD
 
+Just updated to ReturnsAPI, could still have some bugs
+
 ---
 
 ## Installation Instructions
